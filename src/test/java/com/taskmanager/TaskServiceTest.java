@@ -1,4 +1,4 @@
-package com.taskmanager.test;
+package com.taskmanager;
 
 import com.taskmanager.exception.DuplicationException;
 import com.taskmanager.exception.ResourceNotFoundException;
