@@ -1,6 +1,5 @@
 package com.taskmanager.config;
 
-import com.taskmanager.exception.advice.GlobalExceptionHandler;
 import org.flywaydb.core.Flyway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +31,7 @@ import java.util.Objects;
 @EnableTransactionManagement
 public class DataSourceConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(DataSourceConfig.class);
+    private static final Logger customLogger = LoggerFactory.getLogger(DataSourceConfig.class);
 
     @Bean(name = "entityManager")
     public LocalContainerEntityManagerFactoryBean entityManagerFactoryBean(EntityManagerFactoryBuilder builder) {
@@ -83,18 +82,19 @@ public class DataSourceConfig {
             @Override
             protected Object determineCurrentLookupKey() {
                 try {
-                    primaryDataSource.getConnection().isValid(0);
-                    logger.info("Connected to primary datasource Postgres");
+                    primaryDataSource.getConnection().isValid(5);
+                    customLogger.info("Connected to primary datasource Postgres");
                     return "primary";
                 } catch (Exception e) {
-                    logger.info("Connected to secondary datasource H2");
+                    customLogger.error("Exception occurred when connecting to Postgres: {}", e.getMessage());
+                    customLogger.info("Connected to secondary datasource H2");
                     return "secondary";
                 }
             }
         };
 
         try {
-            primaryDataSource.getConnection().isValid(2);
+            primaryDataSource.getConnection().isValid(5);
             executeFlywayMigration(primaryDataSource, "db/migration/postgres");
             executeFlywayMigration(secondaryDataSource, "db/migration/h2");
         } catch (Exception e) {
