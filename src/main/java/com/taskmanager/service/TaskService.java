@@ -44,11 +44,11 @@ public class TaskService {
 
         Task task = taskRepository.findById(uuid)
                 .orElseThrow(() -> new ResourceNotFoundException("Task Record Not Found By UUID: " + uuid));
-        PatcherService.taskPatcher(task, updatedTask);
+        PatcherUtils.patch(task, updatedTask);
         return taskRepository.save(task);
     }
 
     public List<Task> getAllTasks() {
-        return (List<Task>) taskRepository.findAll();
+        return taskRepository.findAll();
     }
 }

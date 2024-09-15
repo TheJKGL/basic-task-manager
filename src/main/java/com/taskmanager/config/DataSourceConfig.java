@@ -1,6 +1,9 @@
 package com.taskmanager.config;
 
+import com.taskmanager.exception.advice.GlobalExceptionHandler;
 import org.flywaydb.core.Flyway;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
@@ -28,6 +31,8 @@ import java.util.Objects;
         entityManagerFactoryRef = "entityManager")
 @EnableTransactionManagement
 public class DataSourceConfig {
+
+    private static final Logger logger = LoggerFactory.getLogger(DataSourceConfig.class);
 
     @Bean(name = "entityManager")
     public LocalContainerEntityManagerFactoryBean entityManagerFactoryBean(EntityManagerFactoryBuilder builder) {
@@ -77,22 +82,24 @@ public class DataSourceConfig {
         AbstractRoutingDataSource routingDataSource = new AbstractRoutingDataSource() {
             @Override
             protected Object determineCurrentLookupKey() {
-                // Logic to determine whether to use main or reserve DataSource
                 try {
                     primaryDataSource.getConnection().isValid(0);
-                    System.out.println("Postgres connected");
-
-                    executeFlywayMigration(primaryDataSource, "db/migration/postgres");
-                    return "primary";  // If the main DB is available
+                    logger.info("Connected to primary datasource Postgres");
+                    return "primary";
                 } catch (Exception e) {
-                    System.out.println(e);
-                    System.out.println("H2 connected");
-
-                    executeFlywayMigration(secondaryDataSource, "db/migration/h2");
-                    return "secondary";  // If the main DB fails, use reserve DB
+                    logger.info("Connected to secondary datasource H2");
+                    return "secondary";
                 }
             }
         };
+
+        try {
+            primaryDataSource.getConnection().isValid(2);
+            executeFlywayMigration(primaryDataSource, "db/migration/postgres");
+            executeFlywayMigration(secondaryDataSource, "db/migration/h2");
+        } catch (Exception e) {
+            executeFlywayMigration(secondaryDataSource, "db/migration/h2");
+        }
 
         Map<Object, Object> dataSources = new HashMap<>();
         dataSources.put("primary", primaryDataSource);
